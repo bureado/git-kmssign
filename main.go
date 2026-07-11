@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/bureado/git-kmssign/certstore"
 	"github.com/pborman/getopt/v2"
@@ -70,6 +71,21 @@ func runCommand() error {
 	if *versionFlag {
 		fmt.Println(versionString)
 		return nil
+	}
+
+	// Allow the certificate-inclusion policy to be set via the
+	// GIT_KMSSIGN_INCLUDE_CERTS environment variable. This matters because git
+	// invokes this program with a fixed argument list and does not let callers
+	// inject flags like --include-certs. An explicit --include-certs flag always
+	// takes precedence over the environment variable.
+	if !getopt.Lookup("include-certs").Seen() {
+		if v := os.Getenv("GIT_KMSSIGN_INCLUDE_CERTS"); v != "" {
+			n, err := strconv.Atoi(v)
+			if err != nil {
+				return errors.Errorf("invalid GIT_KMSSIGN_INCLUDE_CERTS value %q: must be an integer", v)
+			}
+			*includeCertsOpt = n
+		}
 	}
 
 	// Open certificate store

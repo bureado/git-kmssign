@@ -31,6 +31,12 @@ KEY_VERSION="${KEY_VERSION:-}"   # empty = latest
 CERT_PEM="${CERT_PEM:-/tmp/git-signing-crt-01.pem}"
 SIGN_EMAIL="${SIGN_EMAIL:-you@example.com}"
 
+# Certificate inclusion policy (optional). Empty uses the tool default (-2,
+# all certs except the root). Use -1 to embed the whole chain including a
+# self-signed cert, so the signature verifies without supplying the cert
+# externally.
+INCLUDE_CERTS="${INCLUDE_CERTS:-}"
+
 # Test payload and output file.
 MESSAGE="${MESSAGE:-hello from git-kmssign}"
 OUT="${OUT:-sig.pem}"
@@ -60,6 +66,7 @@ printf '%s\n' "$MESSAGE" | docker run --rm -i \
   -e GIT_KMSSIGN_KEY_NAME="$KEY_NAME" \
   -e GIT_KMSSIGN_KEY_VERSION="$KEY_VERSION" \
   -e GIT_KMSSIGN_CERT="/certs/signer.pem" \
+  -e GIT_KMSSIGN_INCLUDE_CERTS="$INCLUDE_CERTS" \
   -v "$CERT_ABS:/certs/signer.pem:ro" \
   "$IMAGE" -s -b -a -u "$SIGN_EMAIL" > "$OUT"
 
