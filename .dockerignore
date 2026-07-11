@@ -1,0 +1,13 @@
+# Keep the build context minimal and avoid leaking local artifacts/secrets.
+.git
+.github
+build/
+*.pem
+*.pfx
+*.p12
+windows-installer/
+**/*_test.go
+README.md
+CONTRIBUTING.md
+MAINTAINING.md
+CODE_OF_CONDUCT.md
