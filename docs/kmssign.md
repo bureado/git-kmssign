@@ -211,6 +211,47 @@ openssl cms -verify -inform DER -in sig.der -content data.txt -binary \
   -CAfile signer.pem -purpose any -out /dev/null
 ```
 
+## Signing real commits with `git commit -S`
+
+To use `git-kmssign` as git's signing program, run it as a native binary. Extract
+the static binary from the built image:
+
+```sh
+cid=$(docker create git-kmssign:dev)
+docker cp "$cid":/usr/bin/git-kmssign /tmp/signing-test/git-kmssign
+docker rm "$cid"
+```
+
+Then point git at it (a throwaway or repo-local config avoids touching your
+global git config), export the same environment the signer reads, and commit:
+
+```sh
+git config gpg.format x509
+git config gpg.x509.program /tmp/signing-test/git-kmssign
+git config user.signingkey you@example.com   # must match the cert's email
+
+export AZURE_TENANT_ID=... AZURE_CLIENT_ID=... AZURE_CLIENT_SECRET=...
+export GIT_KMSSIGN_VAULT_URL=https://<vault>.vault.azure.net/
+export GIT_KMSSIGN_KEY_NAME=<cert-name>
+export GIT_KMSSIGN_CERT=/tmp/git-signing-crt-01.pem
+export GIT_KMSSIGN_INCLUDE_CERTS=-1
+
+git commit -S -m "test: signed via Azure Key Vault"
+git --no-pager log --show-signature -1
+git verify-commit HEAD
+```
+
+The helper script `scripts/live-commit-test.sh` automates this: it extracts
+nothing itself (point `BIN` at the binary), sets up a throwaway repo with
+repo-local x509 config, exports the environment, and drops you into an
+interactive shell to run the git commands yourself. Set the same variables as
+`live-sign-test.sh` (`TENANT_ID`, `APP_ID`, `PASSWORD`, `VAULT_URL`,
+`KEY_NAME`, plus optional `CERT_PEM`, `SIGN_EMAIL`, `INCLUDE_CERTS`, `BIN`).
+
+Note: a self-signed test certificate is not chained to a trusted root, so
+`git verify-commit` may report the signer as untrusted even though the CMS
+signature itself is valid.
+
 ## Scope and limitations
 
 - Azure Key Vault only; RSA/SHA-256 only; RS256 and PS256.
